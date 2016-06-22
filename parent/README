@@ -1,0 +1,1 @@
+Avoid using flush() in OutputStream. Let the update cycle call this periodically so everything runs in sync. 

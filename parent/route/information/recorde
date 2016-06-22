@@ -1,0 +1,351 @@
+/**
+	 * The file format
+	 */
+	private static final String FILE_FORMAT = "png";
+	
+	/**
+	 * The output folder
+	 */
+	private static final String OUTPUT_FOLDER = "output";
+
+	/**
+	 * The file pattern
+	 */
+	private static final String FILE_PATTERN = "%s/%s_%d_%d_%d.png";
+
+	/**
+	 * The size of a single tile on the image representation
+	 */
+	private static final int SIZE = 8;
+	
+	/**
+	 * The color palette
+	 */
+	public static final Color[] PALETTE = new Color[256];
+	
+	/**
+	 * Initializes the palette
+	 */
+	static {
+		Random random = new Random();
+		for (int i = 0; i < PALETTE.length; i++) {
+			PALETTE[i] = new Color(random.nextInt(255), random.nextInt(255), random.nextInt(255));
+		}
+//		PALETTE[0] = Color.WHITE;
+//		PALETTE[1] = Color.YELLOW;
+//		PALETTE[2] = Color.GREEN;
+//		PALETTE[9] = Color.BLUE;
+//		PALETTE[10] = Color.RED;
+	}
+
+	/**
+	 * Creates a snapshot of a set of tiles
+	 * 
+	 * @param tiles
+	 * @param x
+	 * @param y
+	 */
+	public static BufferedImage snapshot_tiles(Set<Tile> tiles, int x, int y) throws Exception {
+		return save(create_image(tiles, Recorder::mark, false), "l", x, y, 0);
+	}
+
+	/**
+	 * Creates a snapshot of a given set of objects
+	 * 
+	 * @param tiles
+	 * @param x
+	 * @param y
+	 * @throws Exception
+	 */
+	public static BufferedImage snapshot_objects(Set<GameObject> tiles, int x, int y) throws Exception {
+		return save(create_image(tiles, Recorder::mark, false), "m", x, y, 0);
+	}
+
+	/**
+	 * Creates a snapshot of a given set of objects
+	 * 
+	 * @param tiles
+	 * @param x
+	 * @param y
+	 * @throws Exception
+	 */
+	public static BufferedImage snapshot_objects_palette(Set<GameObject> tiles, int x, int y) throws Exception {
+		BufferedImage image = new BufferedImage(64 * SIZE + 128, 64 * SIZE, BufferedImage.TYPE_INT_RGB);
+		Graphics g = image.createGraphics();
+		g.drawImage(create_image(tiles, Recorder::mark, false), 0, 0, null);
+		g.drawImage(draw_palette(tiles), 64 * SIZE, 0, null);
+		ImageIO.write(image, FILE_FORMAT, new File(String.format(FILE_PATTERN, OUTPUT_FOLDER, "palette", x, y, 0)));
+		return image;
+	}
+	
+	/**
+	 * dumps the palette
+	 */
+	public static BufferedImage draw_palette(Set<GameObject> objects) throws Exception{
+		Map<Integer, Color> colors_used = new HashMap<>();
+		for (GameObject object : objects) {
+			colors_used.put(object.getType(), PALETTE[object.getType()]);
+		}
+		
+		BufferedImage image = new BufferedImage(128, colors_used.size() * (SIZE * 4) + 18, BufferedImage.TYPE_INT_RGB);
+		Graphics graphics = image.createGraphics();
+		int index = 0;
+		for (Entry<Integer, Color> entry : colors_used.entrySet()) {
+			graphics.setColor(entry.getValue());
+			graphics.fillRect(15, 9 + index * (SIZE * 2 + 4), SIZE * 4, SIZE * 2);
+			graphics.setColor(Color.WHITE);
+			graphics.drawString("" + entry.getKey(), SIZE * 4 + 20, 9 + index++ * (SIZE * 2 + 4) + graphics.getFontMetrics().getHeight());
+		}
+		return image;
+	}
+
+	/**
+	 * Marks a single tile on the given image
+	 * 
+	 * @param image
+	 * @param x
+	 * @param y
+	 * @param color
+	 */
+	private static void mark(BufferedImage image, int x, int y, Color color) {
+		for (int offset_x = 0; offset_x < SIZE; offset_x++) {
+			for (int offset_y = 0; offset_y < SIZE; offset_y++) {
+				int draw_x = x * SIZE + offset_x;
+				int draw_y = (64 - y - 1) * SIZE + offset_y;
+				
+				image.setRGB(draw_x, draw_y, color.getRGB());
+			}
+		}
+	}
+	
+	/**
+	 * 
+	 * @param image
+	 * @param location
+	 * @param color
+	 */
+	private static void mark(BufferedImage image, Location location, Color color) {
+		mark(image, location.getX(), location.getY(), color);
+	}
+	
+	/**
+	 * 
+	 * @param image
+	 * @param location
+	 * @param color
+	 */
+	private static void mark(Tile tile, BufferedImage image) {
+		if (tile.getLocation().getZ() == 0) mark(image, tile.getLocation(), PALETTE[tile.getTexture() & 0xff]);
+	}
+	
+	/**
+	 * Marks a line
+	 * @param object
+	 * @param image
+	 */
+	private static void mark_line(GameObject object, BufferedImage image) {
+		switch (object.getOrientation()) {
+		case 0:
+			mark_vertical_line(object, Color.WHITE, image, 0);
+			break;
+		case 1:
+			mark_horizontal_line(object, Color.WHITE, image, 0);
+			break;
+		case 2:
+			mark_vertical_line(object, Color.WHITE, image, 1);
+			break;
+		case 3:
+			mark_horizontal_line(object, Color.WHITE, image, 1);
+			break;
+		}
+	}
+	
+	/**
+	 * Marks a line
+	 * @param object
+	 * @param image
+	 */
+	private static void mark_corner(GameObject object, BufferedImage image) {
+		switch (object.getOrientation()) {
+		case 0:
+			mark_horizontal_line(object, Color.BLUE, image, 0);
+			mark_vertical_line(object, Color.BLUE, image, 0);
+			break;
+		case 1:
+			mark_horizontal_line(object, Color.BLUE, image, 0);
+			mark_vertical_line(object, Color.BLUE, image, 1);
+			break;
+		case 2:
+			mark_horizontal_line(object, Color.BLUE, image, 1);
+			mark_vertical_line(object, Color.BLUE, image, 1);
+			break;
+		case 3:
+			mark_horizontal_line(object, Color.BLUE, image, 1);
+			mark_vertical_line(object, Color.BLUE, image, 0);
+			break;
+		}
+	}
+	
+	/**
+	 * Marks a line
+	 * @param object
+	 * @param x
+	 * @param y
+	 */
+	private static void mark_horizontal_line(GameObject object, Color color, BufferedImage image, int offset_y) {
+		for (int i = 0; i < SIZE; i++) {
+			int x = object.location().getX() * SIZE + i;
+			int y = (64 - object.location().getY() - 1) * SIZE + offset_y * SIZE;
+			
+			if (y < 64 * SIZE) {
+				image.setRGB(x, y, color.getRGB());
+			}
+		}
+	}
+	
+	/**
+	 * Marks a line
+	 * @param object
+	 * @param x
+	 * @param y
+	 */
+	private static void mark_vertical_line(GameObject object, Color color, BufferedImage image, int offset_x) {
+		for (int i = 0; i < SIZE; i++) {
+			int x = object.location().getX() * SIZE + offset_x * SIZE;
+			int y = (64 - object.location().getY() - 1) * SIZE + i;
+			
+			image.setRGB(x, y, color.getRGB());
+		}
+	}
+	
+	/**
+	 * Marks a line
+	 * @param object
+	 * @param x
+	 * @param y
+	 */
+	private static void mark_diagonal_line(GameObject object, Color color, BufferedImage image, int orientation) {
+		for (int i = 0; i < SIZE; i++) {
+			int x_offset = orientation % 2 == 1 ? i : (SIZE - i);
+			
+			int x = object.location().getX() * SIZE;
+			int y = (64 - object.location().getY() - 1) * SIZE;
+			
+			image.setRGB(x + x_offset, y + i, color.getRGB());
+		}
+	}
+	
+	/**
+	 * Marks a line
+	 * @param object
+	 * @param x
+	 * @param y
+	 */
+	private static void mark_diagonal_line(GameObject object, BufferedImage image) {
+		mark_diagonal_line(object, Color.BLUE, image, object.getOrientation());
+	}
+	
+	/**
+	 * 0	- straight walls, fences etc
+	 * 1	- diagonal walls corner, fences etc connectors
+	 * 2	- entire walls, fences etc corners
+	 * 3	- straight wall corners, fences etc connectors
+	 * 4	- straight inside wall decoration
+	 * 5	- straight outside wall decoration
+	 * 6	- diagonal outside wall decoration
+	 * 7	- diagonal inside wall decoration
+	 * 8	- diagonal in wall decoration
+	 * 9	- diagonal walls, fences etc
+	 * 10	- all kinds of objects, trees, statues, signs, fountains etc etc
+	 * 11	- ground objects like daisies etc
+	 * 12	- straight sloped roofs
+	 * 13	- diagonal sloped roofs
+	 * 14	- diagonal slope connecting roofs
+	 * 15	- straight sloped corner connecting roofs
+	 * 16	- straight sloped corner roof
+	 * 17	- straight flat top roofs
+	 * 18	- straight bottom egde roofs
+	 * 19	- diagonal bottom edge connecting roofs
+	 * 20	- straight bottom edge connecting roofs
+	 * 21	- straight bottom edge connecting corner roofs
+	 * 22	- ground decoration + map signs (quests, water fountains, shops etc)
+	 * @param image
+	 * @param location
+	 * @param color
+	 */
+	private static void mark(GameObject object, BufferedImage image) {
+		switch (object.getType()) {
+		case 0:
+//			if (object.getDefinition().isWall())
+				mark_line(object, image);
+			break;
+		case 2:
+//			if (object.getDefinition().isWall())
+				mark_corner(object, image);
+			break;
+		case 9:
+//			if (object.getDefinition().isWall())
+				mark_diagonal_line(object, image);
+			break;
+		case 10:
+			int width = object.getOrientation() == 1 || object.getOrientation() == 3 ? object.getDefinition().getHeight() : object.getDefinition().getWidth();
+			int height = object.getOrientation() == 1 || object.getOrientation() == 3 ? object.getDefinition().getWidth() : object.getDefinition().getHeight();
+			
+			for (int x = 0; x < width; x++) {
+				for (int y = 0; y < height; y++) {
+					int draw_x = object.location().getX() + x;
+					int draw_y = object.location().getY() + y;
+					
+					if (draw_x < 0 || draw_x >= 64 || draw_y < 0 || draw_y >= 64) {
+						continue;
+					}
+					
+					
+					if (!object.getDefinition().isTraversable() || object.getDefinition().isSolid()) {
+						mark(image, draw_x, draw_y, Color.RED);
+					}
+				}
+			}
+		}
+	}
+
+	/**
+	 * 
+	 * @param items
+	 * @param consumer
+	 * @param file_prefix
+	 * @throws Exception
+	 */
+	private static <T> BufferedImage create_image(Set<T> items, BiConsumer<T, BufferedImage> consumer, boolean alpha) throws Exception {
+		BufferedImage image = new BufferedImage(64 * SIZE, 64 * SIZE, alpha ? BufferedImage.TYPE_INT_ARGB : BufferedImage.TYPE_INT_RGB);
+		items.forEach(item -> consumer.accept(item, image));
+		return image;
+	}
+
+	/**
+	 * 
+	 * @param items
+	 * @param consumer
+	 * @param file_prefix
+	 * @throws Exception
+	 */
+	private static BufferedImage save(BufferedImage image, String file_prefix, int x, int y, int z) throws Exception {
+		ImageIO.write(image, FILE_FORMAT, new File(String.format(FILE_PATTERN, OUTPUT_FOLDER, file_prefix, x, y, z)));
+		return image;
+	}
+
+	/**
+	 * 
+	 * @param items
+	 * @param consumer
+	 * @param file_prefix
+	 * @throws Exception
+	 */
+	public static <T> BufferedImage merge(Set<Tile> tiles, Set<GameObject> objects) throws Exception {
+		BufferedImage image = new BufferedImage(64 * SIZE, 64 * SIZE, BufferedImage.TYPE_INT_ARGB);
+		Graphics og = image.getGraphics();
+		og.drawImage(create_image(tiles, Recorder::mark, true), 0, 0, null);
+		og.drawImage(create_image(objects, Recorder::mark, true), 0, 0, null);
+		save(image, "merge", 0, 0, 0);
+		return image;
+	}

@@ -1,0 +1,24 @@
+		Map<Integer, Color> colors_used = new HashMap<>();
+
+		int index = 0;
+		
+		BufferedImage image = new BufferedImage(64 * SIZE + 80, 64 * SIZE, BufferedImage.TYPE_INT_RGB);
+		Graphics graphics = image.createGraphics();
+		for (int x = 0; x < region.getTiles()[0].length; x++)
+			for (int y = 0; y < region.getTiles()[0][x].length; y++) {
+				Tile tile = region.tile(x, y, 0);
+				
+				
+				
+//				if (tile.getTexture() == 88) {
+					mark(tile, image);
+//				}
+					colors_used.put(tile.getTexture(), PALETTE[tile.getTexture()]);
+			}
+
+		for (Entry<Integer, Color> entry : colors_used.entrySet()) {
+			graphics.setColor(entry.getValue());
+			graphics.fillRect(512 + 15, 9 + index * (SIZE * 2 + 4), SIZE * 4, SIZE * 2);
+			graphics.setColor(Color.WHITE);
+			graphics.drawString("" + entry.getKey(), 512 + SIZE * 4 + 20, 9 + index++ * (SIZE * 2 + 4) + graphics.getFontMetrics().getHeight());
+		}

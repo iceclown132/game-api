@@ -1,0 +1,19 @@
+Login
+
+Check if the user is eligible to register
+  - username/password match with database
+  - there is enough room in the realm
+  - the user is not banned
+  - the user is not yet logged in elsewhere
+  - the login server is reachable
+  -> UserRegistered event: Attempts to load the player's character model
+
+Allocate a player model for the user
+ - check to see if the player already has a player model
+ - load the player's attributes (skills, equipment, bank, inventory, ...)
+ -> PlayerLoaded event: Register the player to the main renderer
+
+
+Session: world id, username, session id, remote
+-> Cannot login to other worlds if either session or world id is different (60 second window)
+-> Session is saved per remote host

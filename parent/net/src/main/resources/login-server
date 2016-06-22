@@ -1,0 +1,36 @@
+Steps:
+
+Login-server:
+  L = Login server user status
+  G = Game server user status
+
+    |  L  |  G  |
+     ---------
+    |  0  |  0  | - Player is offline on both -> Allow login attempt
+    |  1  |  1  | - Player is online on both  -> Reject login attempt
+    |  0  |  1  | - online on G not on L      -> Reject login attempt, invalidate session
+    |  0  |  0  | - online on L not on G      -> Reject login attempt, invalidate session
+
+  JSON-format:
+  Request:
+    {
+      "username": string,
+      "password": string,
+      "server": string
+    }
+
+  Response:
+    Response OK:
+    {
+      "status": enum,
+      "privelege": enum,
+      "monitored": boolean,
+      "disabled": boolean
+    }
+
+    Response Fail:
+    {
+      "status": enum
+    }
+
+Character-server:

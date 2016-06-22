@@ -1,0 +1,45 @@
+/**
+ * The collection of users
+ */
+private final Set<User> users = new HashSet<>();
+
+/**
+ * The maximum amount of concurrent users
+ */
+@Resource("spartan.realm.limit")
+private int limit;
+
+/**
+ * The synchronizationService
+ */
+@Inject
+private SynchronizationService synchronizationService;
+
+@Override
+public boolean register(User user) {
+  /*
+   * If the users list size exceeds that of the limit and the player is not elligible for a
+   * reserved spot, do not allow entry
+   *
+   * Reserved spots are for players who have the elevated moderator rights
+   */
+  if (users.size() >= limit) {
+    return false;
+  }
+  return users.add(user);
+}
+
+@Override
+public void remove(User user) {
+  users.remove(user);
+}
+
+@Override
+public boolean contains(String username) {
+  return users.stream().anyMatch(other -> other.getCredentials().getUsername().equals(username));
+}
+
+@Override
+public boolean hasRemaining() {
+  return users.size() < limit;
+}
